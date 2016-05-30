@@ -23,6 +23,6 @@
         last (atom nil)]
 
     (for [msg stream-seq]
-      (if (not (nil? @last))
-        (assert (= 1 (- msg last))))
-      (reset! last msg))))
+      (do (if (not (nil? @last))
+            (assert (= 1 (- msg last))))
+          (reset! last msg)))))

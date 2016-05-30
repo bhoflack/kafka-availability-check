@@ -1,6 +1,8 @@
 (ns kafka-availability-check.core
   (:require [kafka-availability-check.producer :as producer]
-            [kafka-availability-check.consumer :as consumer]))
+            [kafka-availability-check.consumer :as consumer]
+            [kafka-availability-check.either-monad :as either]
+            [kafka-availability-check.simulation :as simulation]))
 
 (def brokers
   "A list of the containers running the kafka brokers."
@@ -38,15 +40,15 @@
 (defn run
   [zk]
   (either/bind
-   (simulation/setup-servers brokers)
+   (apply simulation/setup-servers brokers)
    (fn [servers]
      (let [seed (first servers)
            seed-port (-> seed
                          :port-mapping
-                         snd)
+                         second)
            seed-ip (:ip-address seed)
            topic "test"]
-       (Thread/new (producer/increase (str seed-ip ":" seed-port) topic))
+       (.start (Thread. (producer/increase (str seed-ip ":" seed-port) topic)))
        (consumer/check-linearability zk topic "consumer1")
        ))))
 
