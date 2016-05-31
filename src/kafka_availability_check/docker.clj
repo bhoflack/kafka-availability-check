@@ -12,7 +12,7 @@
 
 (defn run
   "Run a docker image"
-  [image & {:keys [env volume-mapping port-mapping publish-all-ports?]
+  [image & {:keys [name env volume-mapping port-mapping publish-all-ports? link]
             :or {env {}
                  volume-mapping {}
                  port-mapping {}
@@ -21,9 +21,7 @@
         volume-args (mapcat (fn [[host container]] ["-v" (str host ":" container)]) volume-mapping)
         env-args (mapcat (fn [[k v]] ["-e" (str k "=" v)]) env)
         port-args (mapcat (fn [[host container]] ["-p" (str host ":" container)]) port-mapping)
-        cmd (if publish-all-ports?
-              (concat command volume-args env-args port-args ["-P"] [image])
-              (concat command volume-args env-args port-args [image]))]
+        cmd (concat command volume-args env-args port-args (if name ["--name" name]) (if publish-all-ports? ["-P"]) (if link ["--link" link]) [image])]
     (println "command: " cmd)
     (either/bind (apply sh! cmd)
                  (fn [{:keys [out]}] (either/unit (.trim out))))))

@@ -9,20 +9,25 @@
   (let [consumer (-> (doto (Properties.)
                        (.put "zookeeper.connect" zk)
                        (.put "group.id" group)
-                       (.put "auto.offset.reset" "largest")
+                       (.put "auto.offset.reset" "smallest")
                        (.put "zookeeper.session.timeout.ms" "400")
                        (.put "zookeeper.sync.time.ms" "200")
                        (.put "auto.commit.interval.ms" "1000"))
                      (ConsumerConfig.)
                      (Consumer/create))
-        streams (.createMessageStreams consumer {topic 1})
+        streams (.createMessageStreams consumer (scala.collection.JavaConversions/mapAsScalaMap {topic (int 1)}))
         stream-seq (-> streams
+                       scala.collection.JavaConversions/mapAsJavaMap                       
+                       (get topic)
+                       scala.collection.JavaConversions/seqAsJavaList
                        first
                        (.iterator)
                        iterator-seq)
         last (atom nil)]
 
-    (for [msg stream-seq]
-      (do (if (not (nil? @last))
-            (assert (= 1 (- msg last))))
-          (reset! last msg)))))
+    (doseq [msg stream-seq]
+      (let [n (Integer/parseInt (String. (.message msg)))]
+        (println "consume message " n )
+        (if (not (nil? @last))
+          (assert (= 1 (- n @last))))
+        (reset! last n)))))
